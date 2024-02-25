@@ -11,6 +11,7 @@ import type { TSConfig } from "pkg-types";
 import type { RollupError } from "rollup";
 import type { OnResolveResult, PartialMessage } from "esbuild";
 import { globby } from "globby";
+import { scanExports } from "unimport";
 import {
   lookupNodeModuleSubpath,
   parseNodeModulePath,
@@ -121,9 +122,33 @@ export async function writeTypes(nitro: Nitro) {
     if (!types.routes[mw.route][method]) {
       types.routes[mw.route][method] = [];
     }
-    types.routes[mw.route][method].push(
-      `Simplify<Serialize<Awaited<ReturnType<typeof import('${relativePath}').default>>>>`
+
+    const imps = await scanExports(
+      resolveNitroPath(mw.handler, nitro.options),
+      true
     );
+
+    const o: any = {
+      response: `Simplify<Serialize<Awaited<ReturnType<typeof import('${relativePath}').default>>>>`,
+    };
+
+    // if ("validator" in i) {
+    //   o.request = `{`;
+
+    //   if ("body" in i.validator) {
+    //     o.request += `body: Simplify<Serialize<Awaited<ReturnType<typeof import('${relativePath}').validator.body>>>>,\n`;
+    //   }
+    //   if ("query" in i.validator) {
+    //     o.request += `query:Simplify<Serialize<Awaited<ReturnType<typeof import('${relativePath}').validator.query>>>>,\n`;
+    //   }
+    //   if ("params" in i.validator) {
+    //     o.request += `params: Simplify<Serialize<Awaited<ReturnType<typeof import('${relativePath}').validator.params>>>>,\n`;
+    //   }
+
+    //   o.request += `}`;
+    // }
+
+    types.routes[mw.route][method].push(o);
   }
 
   let autoImportedTypes: string[] = [];
@@ -188,12 +213,13 @@ export async function writeTypes(nitro: Nitro) {
     "import type { Serialize, Simplify } from 'nitropack'",
     "declare module 'nitropack' {",
     "  type Awaited<T> = T extends PromiseLike<infer U> ? Awaited<U> : T",
-    "  interface InternalApi {",
+    "  interface _InternalApi {",
     ...Object.entries(types.routes).map(([path, methods]) =>
       [
         `    '${path}': {`,
         ...Object.entries(methods).map(
-          ([method, types]) => `      '${method}': ${types.join(" | ")}`
+          ([method, types]) =>
+            `      '${method}': { response: ${types.map((v: any) => v.response).join(" | ")}}` // Work around: I am too dumb to understand what types is
         ),
         "    }",
       ].join("\n")
