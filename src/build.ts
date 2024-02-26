@@ -127,8 +127,6 @@ export async function writeTypes(nitro: Nitro) {
       true
     );
 
-    console.log(imps);
-
     const o: any = {
       response: `Simplify<Serialize<Awaited<ReturnType<typeof import('${relativePath}').default>>>>`,
     };
