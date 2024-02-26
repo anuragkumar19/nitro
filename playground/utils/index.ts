@@ -70,3 +70,12 @@ export function _getValidatedQuery<
 >(event: Event, validator: QueryValidator<_T>): Promise<_T> {
   return getValidatedQuery(event, validator.query);
 }
+
+export type ValidatorToX<
+  V extends Validators<unknown, unknown, unknown>,
+  K extends keyof Required<Validators<unknown, unknown, unknown>>,
+> = K extends keyof V
+  ? V[K] extends ValidateFunction<unknown>
+    ? Awaited<ReturnType<V[K]>>
+    : never
+  : never;
