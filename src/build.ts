@@ -1,6 +1,7 @@
 import { existsSync, promises as fsp } from "node:fs";
 import { relative, resolve, join, dirname, isAbsolute } from "pathe";
 import { resolveAlias } from "pathe/utils";
+import { scanExports } from "unimport";
 import * as rollup from "rollup";
 import fse from "fs-extra";
 import { defu } from "defu";
@@ -122,7 +123,7 @@ export async function writeTypes(nitro: Nitro) {
       types.routes[mw.route][method] = [];
     }
 
-    const imps = await nitro.unimport.scanImportsFromFile(
+    const imps = await scanExports(
       resolveNitroPath(mw.handler, nitro.options),
       true
     );
